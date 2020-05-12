@@ -51,7 +51,7 @@ dados[dados['Income'].isna() == True]
 
 # como são apenas 24 casos, vamos remover essas linhas. 
 
-dados2 = dados.dropna()
+dados = dados.dropna()
 
 
 # In[7]:
@@ -80,20 +80,20 @@ sns.barplot(x = dados.Education, y=dados.Income, hue=dados.Response).set(
 dados.columns
 
 
-# In[92]:
+# In[10]:
 
 
 #Verificando o ano de nascimento dos clientes é possível perceber que a grande maioria dos clientes nasceu entre 1960 e 1980 
 dados.Year_Birth.hist()
 
 
-# In[32]:
+# In[11]:
 
 
 dados['month_year'] = pd.to_datetime(dados['Dt_Customer']).dt.to_period('M')
 
 
-# In[93]:
+# In[12]:
 
 
 #Verificando também a data que os clientes se envolveram com a empresa
@@ -104,7 +104,7 @@ sns.countplot(x='month_year', data = dados, order= sorted(dados.month_year.uniqu
 # Isso pode demonstrar um crescimento próximo de linear na captação da empresa
 
 
-# In[94]:
+# In[13]:
 
 
 #Verificando a mesma premissa da linha anterior colocando também a variável de resposta (target)
@@ -116,7 +116,7 @@ title = 'Contagem de Clientes por Ano de Relacionamento com a Empresa separados 
 # É possível perceber que esta última campanha (target) foi mais popular entre os membros mais antigos deste produto
 
 
-# In[95]:
+# In[14]:
 
 
 #Dado que a maioria dos clientes já possui mais de 30 anos, vamos verificar a quantidade de filhos de cada cliente
@@ -127,7 +127,7 @@ sns.heatmap(pivot, annot=True, fmt = '.3g').set(title='Heatmap de Crianças por 
 #Clientes com 2 filhos são mais raros
 
 
-# In[84]:
+# In[15]:
 
 
 #Vamos entender dentro das famílias com filhos como é o comportamento, para isso vamos criar uma coluna a mais
@@ -144,7 +144,7 @@ sns.heatmap(pivot, annot=True, fmt = '.3g').set(title='Heatmap de Status Civil p
 # Divorciados representam quase 10% do restante.
 
 
-# In[13]:
+# In[16]:
 
 
 #Vamos entender como é o consumo dos clientes
@@ -158,13 +158,13 @@ dados.groupby('children')[['AcceptedCmp3', 'AcceptedCmp4', 'AcceptedCmp5', 'Acce
 # Para quem tem 3 filhos a campanha 3 e 5 foram mais atrativas
 
 
-# In[14]:
+# In[17]:
 
 
 dados.columns
 
 
-# In[97]:
+# In[18]:
 
 
 # Vamos entender se existe relação entre as reclamações dos clientes e a recência
@@ -177,7 +177,7 @@ sns.barplot(data=dados, x='Recency',y='Complain', orient='h', hue='Response').se
 # É possível perceber também que quem reclama tem recência maior que quem não reclama (valiadndo a hipótese que os clientes que ficam incomodados compram menos vezes)
 
 
-# In[16]:
+# In[19]:
 
 
 #É interessante entender qual o perfil dos clientes que aceitaram a última campanha, e as anteriores também.
@@ -190,7 +190,7 @@ dados.choice = dadosprod.apply(lambda x: dadosprod.idxmax(axis = 1))
 dados.choice = dados.choice.apply(lambda x: x[3:] )
 
 
-# In[82]:
+# In[20]:
 
 
 #Vamos entender agora qual a recência dos clientes que gastam mais, para confirmar se os que gastam mais é porque compram mais vezes
@@ -200,7 +200,7 @@ dados.pivot_table(values = 'spend', index = 'Recency',  aggfunc='sum').plot(figs
 #Olhando os clientes é possível perceber que mesmo aqueles que compram com maior frequência possuem um gasto semelhante aos demais
 
 
-# In[96]:
+# In[21]:
 
 
 # Analisando os tipos de produtos que são comprados pelos clientes mais frequentes
@@ -208,6 +208,368 @@ dados.pivot_table(values = 'spend', index = 'Recency',  aggfunc='sum').plot(figs
 dados.pivot_table(values='Recency', index = 'choice', aggfunc='mean').plot(figsize =(10,5), title = 'Recência Média por Produto')
 
 # Geralmente os clientes com maior frequência (menor recência) gastam mais com produtos doces e gastam menos com frutas
+
+
+# In[22]:
+
+
+#Verificando se temos outliers em alguma variável
+dados.boxplot(figsize=(30,15))
+
+#É possível perceber que na variável income temos outliers
+
+
+# In[23]:
+
+
+# Verificando a quantidade de outliers na variável income
+
+(dados['Income']>150000).sum()
+
+# Apenas 8 valores, vamos remover estes valores
+
+dados = dados[dados['Income']<150000]
+
+
+# # Vamos começar a segmentação dos clientes
+
+# In[24]:
+
+
+#Primeiro de tudo vamos transformar as variáveis categóricas para variáveis numéricas
+(dados.dtypes == object).sum()
+
+#Temos 4 variáveis categóricas
+
+
+# In[25]:
+
+
+dados.dtypes
+
+
+# In[26]:
+
+
+# Vamos seguir a seguinte estratégia
+# Para a variáveis de data (Data de Cadastro do Cliente), vamos subtrair a data de hoje, transformando em um número para não perdermos a variável
+# para a Educação, Status Civil, e Choice(produto preferido) vamos formar dummies
+# para o mes de cadastro, vamos tirar a variável, ela foi criada para facilitar a visualização gráfica apenas
+
+from datetime import datetime
+dados['dtcadastro'] = dados.Dt_Customer.apply(lambda x: datetime.strptime(x, '%Y-%m-%d').date())
+dados['dtcadastrado'] = datetime.today().date() - dados.dtcadastro
+dados['dtcadastrado'] = dados.dtcadastrado.apply(lambda x: x.days)
+dados2 = dados.drop(['month_year','Dt_Customer','dtcadastro'], axis=1)
+dados2 = pd.get_dummies(dados2)
+
+
+# In[27]:
+
+
+# Indo para a padronização dos dados, ajustando a escala
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+dados_scaled = scaler.fit_transform(dados2)
+
+
+# In[28]:
+
+
+# Primeiro vamos determinar a quantidade ideal de clusters para usarmos na segregação
+
+from sklearn.cluster import KMeans
+d_centroide = []
+qtde = range(1,10)
+for k in qtde:
+    modelo = KMeans(n_clusters=k,random_state=42)
+    modelo.fit(dados_scaled)
+    d_centroide.append(modelo.inertia_)
+
+
+# In[29]:
+
+
+plt.figure(figsize=(10,5))
+
+plt.plot(qtde, d_centroide, 'bx-')
+
+plt.show()
+
+# vamos usar 3 clusters para estabilizar a distância intra cluster (já decai 2/3 da distância aqui)
+
+
+# In[77]:
+
+
+# Aplicando o modelo
+modelo = KMeans(n_clusters=3, random_state= 42)
+modelo.fit(dados_scaled)
+
+
+# In[78]:
+
+
+# verificando os resultados
+
+dados2['cluster'] = modelo.predict(dados_scaled)
+
+
+# In[115]:
+
+
+# Separando agora e analisando os clusters
+
+dados2.groupby('cluster').Income.mean().plot(kind='barh')
+
+# Em termos de Receita temos bastante diferença entre os clusters
+# O Cluster 0 possui maior renda, seguido do cluster 2 e depois do cluster 1
+
+
+# In[101]:
+
+
+columns = dados2.columns
+
+
+# In[121]:
+
+
+fig, axes = plt.subplots(6,8,sharex=True, sharey=False, figsize = (30,30))
+for ax, feature, name in zip(axes.flatten(), columns, columns):
+    sns.scatterplot(data = dados2, x='ID',y=feature, ax=ax, hue = 'cluster')
+    ax.set(title = name)
+    
+# Com os gráficos abaixo é possível entender melhor o comportamento dos clusters em cada variável.
+
+
+# In[106]:
+
+
+fig, axes = plt.subplots(5,5, sharex= True, sharey= False, figsize=(30,20))
+dados2.boxplot(column=['Year_Birth','Income', 'Recency',
+       'MntWines', 'MntFruits', 'MntMeatProducts', 'MntFishProducts',
+       'MntSweetProducts', 'MntGoldProds', 'NumDealsPurchases',
+       'NumWebPurchases', 'NumCatalogPurchases', 'NumStorePurchases',
+       'NumWebVisitsMonth', 'AcceptedCmp3', 'AcceptedCmp4', 'AcceptedCmp5',
+       'AcceptedCmp1', 'AcceptedCmp2', 'Complain', 'Z_CostContact',
+       'Z_Revenue', 'Response', 'children', 'dtcadastrado'], ax = axes, by='cluster')
+
+
+# In[118]:
+
+
+dados_without_income = dados2.drop('Income', axis = 1)
+
+
+# In[119]:
+
+
+plt.figure(figsize = (20,20))
+sns.heatmap(dados_without_income.groupby('cluster').mean().transpose(),annot=True, fmt='.4g')
+
+#Com o heatmap é possível ver de forma mais clara as diferenças entre os clusters de clientes.
+
+
+# # Passando para a modelagem preditiva, para maximizar a margem de lucro da campanha
+
+# In[122]:
+
+
+dados2.columns
+
+
+# In[132]:
+
+
+# Assumiremos aqui o custo e retorno uniforme por cliente conforme as colunas Z_CostCustomer e Z_Revenue
+
+#Começaremos pela redução das variáveis, de forma a começar o modelo com uma base mais enxuta
+
+#Separando a base em features (x) e target(y)
+# O target aqui será a resposta na campamnha (tentaremos atingir quem tem mais probabilidade de aceitar a campanha)
+
+x = dados2.drop('Response', axis =1)
+y = dados2.Response
+
+
+
+# In[144]:
+
+
+# Começando a feature selection, tentaremos com as 20 melhores variáveis para facilitar a interpretação do modelo.
+print(x.shape)
+
+from sklearn.feature_selection import SelectKBest, f_regression
+selector = SelectKBest(f_regression, k=20)
+x_new = selector.fit_transform(x,y)
+cols = selector.get_support(indices=True)
+x_best = x.iloc[:,cols]
+
+
+print(x_new.shape)
+
+
+# In[145]:
+
+
+# Vamos entender quais foram as features mais interessantes para essa escolha
+
+x_best.columns
+
+# É possível perceber aqui que colunas agregadoras como spend e children foram escolhidas junto com as suas dependentes
+# Pode ser que tenhamos redundância aqui, vamos fazer o teste depois sem estas variáveis para entender se temos melhores resultados.
+
+
+# In[146]:
+
+
+# Começando a modelagem
+
+#Separando treino e teste
+
+from sklearn.model_selection import train_test_split
+
+x_treino, x_teste, y_treino, y_teste = train_test_split(x_best, y, test_size = 0.3, random_state = 42)
+
+
+# In[147]:
+
+
+# Começando com um modelo de Random Forest que seria um bom benchmark para comparação
+
+# Random Forest
+from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier(random_state=42)
+rf.fit(x_treino,y_treino)
+
+#base de treino
+y_pred_treino_rf = rf.predict(x_treino)
+
+#base de teste
+y_pred_teste_rf = rf.predict(x_teste)
+
+
+#Verificando o score do modelo
+from sklearn.metrics import accuracy_score
+
+score_treino_rf = round(accuracy_score(y_pred_treino_rf,y_treino) *100 , 2)
+score_teste_rf = round(accuracy_score(y_pred_teste_rf, y_teste) *100 , 2)
+
+print(" O Score do treino foi de "+ str(score_treino_rf) + '%')
+print(' O Score do teste foi de '+str(score_teste_rf) + '%')
+
+# Começamos com um bom score, de 85% para o teste. Vamos aplicar outras técnicas para garantir que teremos o melhor resultado
+
+
+# In[148]:
+
+
+#Regressão Logistica
+from sklearn.linear_model import LogisticRegression
+
+lr = LogisticRegression(random_state=42)
+lr.fit(x_treino,y_treino)
+
+#base de treino
+y_pred_treino_lr = lr.predict(x_treino)
+
+#base de teste
+y_pred_teste_lr = lr.predict(x_teste)
+
+
+#Verificando o score do modelo
+from sklearn.metrics import accuracy_score
+
+score_treino_lr = round(accuracy_score(y_pred_treino_lr,y_treino) *100 , 2)
+score_teste_lr = round(accuracy_score(y_pred_teste_lr, y_teste) *100 , 2)
+
+print(" O Score do treino foi de "+ str(score_treino_lr) + '%')
+print(' O Score do teste foi de '+str(score_teste_lr) + '%')
+
+# A Regressão logística obteve resultados um pouco mais baixos aqui
+
+
+# In[166]:
+
+
+# Gradient Boosting
+from sklearn.ensemble import GradientBoostingClassifier
+
+gb = GradientBoostingClassifier(random_state=42)
+gb.fit(x_treino,y_treino)
+
+#base de treino
+y_pred_treino_gb = gb.predict(x_treino)
+
+#base de teste
+y_pred_teste_gb = gb.predict(x_teste)
+
+
+#Verificando o score do modelo
+from sklearn.metrics import accuracy_score
+
+score_treino_gb = round(accuracy_score(y_pred_treino_gb,y_treino) *100 , 2)
+score_teste_gb = round(accuracy_score(y_pred_teste_gb, y_teste) *100 , 2)
+
+print(" O Score do treino foi de "+ str(score_treino_gb) + '%')
+print(' O Score do teste foi de '+str(score_teste_gb) + '%')
+
+# O gradient boost se provou menos enviesado (um pouco menos preciso no treino mas mais preciso no teste)
+
+
+# In[ ]:
+
+
+# Usando o Gradient Boosting, vamos melhorar os parâmetros do modelo usando Grid Search
+from sklearn.model_selection import GridSearchCV
+# dicionario do GB
+parametros_gb = {
+    "loss":["deviance"],
+    "learning_rate": [0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2],
+    "min_samples_split": np.linspace(0.1, 0.5, 12),
+    "min_samples_leaf": np.linspace(0.1, 0.5, 12),
+    "max_depth":[3,5,8],
+    "max_features":["log2","sqrt"],
+    "criterion": ["friedman_mse",  "mae"],
+    "subsample":[0.5, 0.618, 0.8, 0.85, 0.9, 0.95, 1.0],
+    "n_estimators":[10]
+    }
+
+modelo_gb = GridSearchCV(GradientBoostingClassifier(random_state = 42), parametros_gb, cv=5, n_jobs=-1,verbose=1)
+modelo_gb.fit(x_treino, y_treino)
+
+
+# In[164]:
+
+
+modelo_gb.best_params_
+
+
+# In[165]:
+
+
+# Vamos conferir o score do modelo agora com os ajustes
+
+#base de treino
+y_pred_treino_gb_final = modelo_gb.predict(x_treino)
+
+#base de teste
+y_pred_teste_gb_final = modelo_gb.predict(x_teste)
+
+
+#Verificando o score do modelo
+from sklearn.metrics import accuracy_score
+
+score_treino_gb_final = round(accuracy_score(y_pred_treino_gb_final,y_treino) *100 , 2)
+score_teste_gb_final = round(accuracy_score(y_pred_teste_gb_final, y_teste) *100 , 2)
+
+print(" O Score do treino foi de "+ str(score_treino_gb_final) + '%')
+print(' O Score do teste foi de '+str(score_teste_gb_final) + '%')
 
 
 # In[ ]:
