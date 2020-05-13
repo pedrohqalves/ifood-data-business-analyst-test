@@ -522,35 +522,32 @@ print(' O Score do teste foi de '+str(score_teste_gb) + '%')
 # O gradient boost se provou menos enviesado (um pouco menos preciso no treino mas mais preciso no teste)
 
 
-# In[ ]:
+# In[171]:
 
 
 # Usando o Gradient Boosting, vamos melhorar os parâmetros do modelo usando Grid Search
 from sklearn.model_selection import GridSearchCV
 # dicionario do GB
 parametros_gb = {
-    "loss":["deviance"],
+    
     "learning_rate": [0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2],
-    "min_samples_split": np.linspace(0.1, 0.5, 12),
-    "min_samples_leaf": np.linspace(0.1, 0.5, 12),
     "max_depth":[3,5,8],
     "max_features":["log2","sqrt"],
-    "criterion": ["friedman_mse",  "mae"],
-    "subsample":[0.5, 0.618, 0.8, 0.85, 0.9, 0.95, 1.0],
-    "n_estimators":[10]
+    "criterion": ["friedman_mse",  "mae"]
+    
     }
 
 modelo_gb = GridSearchCV(GradientBoostingClassifier(random_state = 42), parametros_gb, cv=5, n_jobs=-1,verbose=1)
 modelo_gb.fit(x_treino, y_treino)
 
 
-# In[164]:
+# In[172]:
 
 
 modelo_gb.best_params_
 
 
-# In[165]:
+# In[173]:
 
 
 # Vamos conferir o score do modelo agora com os ajustes
@@ -570,6 +567,100 @@ score_teste_gb_final = round(accuracy_score(y_pred_teste_gb_final, y_teste) *100
 
 print(" O Score do treino foi de "+ str(score_treino_gb_final) + '%')
 print(' O Score do teste foi de '+str(score_teste_gb_final) + '%')
+
+
+# In[192]:
+
+
+# Vamos entender qual a probabilidade de cada cliente aceitar a campanha
+
+dados2['proba'] = modelo_gb.predict_proba(x_best)[:, 1]
+dados2['predicaomodelo'] = modelo_gb.predict(x_best)
+dados2['decisao'] = pd.Series()
+dados2['aux'] = pd.Series()
+
+
+# In[226]:
+
+
+# Aqui vamos entender o ponto ótimo da campanha, menor erro e maior lucro, 
+#a nossa decisão vai se basear na probabilidade do cliente ser convertido na campanha ou nao
+# vamos tentar com probabilidades de 10 a 90%
+custo_list=[]
+venda_list = []
+probabilidade_list = []
+score_list = []
+clientes_impactados_list = []
+for i in range(1,10,1):
+    probabilidade = i/10
+    dados2['decisao'] = dados2.proba.apply(lambda x : 1 if x > probabilidade else 0)
+    for j in dados2.index:
+        dados2['aux'][j] = abs(dados2.Response[j] - dados2.decisao[j])
+    score = (1 - (dados2.aux.sum()/dados2.ID.count())) *100
+    clientes_impactados = dados2.decisao.sum() 
+    custototal = clientes_impactados*dados2.Z_CostContact.mean()
+    venda = score*clientes_impactados*dados2.Z_Revenue.mean()
+    custo_list.append(custototal)
+    venda_list.append(venda)
+    probabilidade_list.append(probabilidade)
+    score_list.append(score)
+    clientes_impactados_list.append(clientes_impactados)
+    print('loop' + str(i) + 'concluído')
+
+
+# In[216]:
+
+
+campanha = pd.DataFrame(columns={'probabilidade': probabilidade_list, 'venda': venda_list, 'custo': custo_list})
+
+
+# In[217]:
+
+
+campanha.probabilidade = probabilidade_list
+campanha.venda = venda_list
+campanha.custo = custo_list
+campanha['lucro'] = campanha.venda-campanha.custo
+
+
+# In[231]:
+
+
+#Conseguimos ver que quanto maior a probabilidade que queremos usar para dizer que um cliente vai aceitar, menos clientes serão impactados
+# Consequentemente 
+
+plt.plot(clientes_impactados_list)
+print(clientes_impactados_list)
+
+
+# In[ ]:
+
+
+# O Score do modelo é otimizado por volta de 40 a 50% de probabilidade, mas isso não quer dizer necessariamente que quanto maior o score, mais lucro
+# Para isso devemos comparar quantos clientes estaremos atingindo e também qual o custo e lucro que teremos
+
+
+# In[223]:
+
+
+campanha.groupby('probabilidade').lucro.mean().plot(kind='barh')
+# É possível ver que temos o maior lucro com 10% de probabilidade, impactando mais clientes.
+
+
+# In[232]:
+
+
+# Apesar de 10% ser uma probabilidade relativamente baixa, conseguimos explicar a maximização do lucro olhando o histograma
+
+dados2.proba.hist()
+
+# A maior parte dos clientes possuem probabilidades ainda menores que 10% de aceitar a campanha, e por isso não seriam impactados.
+
+
+# In[244]:
+
+
+print(('Com {} % de probabilidade teríamos {} de clientes impactados gerando um lucro de {} ').format(probabilidade_list[0]*100,clientes_impactados_list[0],lucro_list[0]))
 
 
 # In[ ]:
