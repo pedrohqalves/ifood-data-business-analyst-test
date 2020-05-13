@@ -585,7 +585,7 @@ dados2['aux'] = pd.Series()
 
 # Aqui vamos entender o ponto ótimo da campanha, menor erro e maior lucro, 
 #a nossa decisão vai se basear na probabilidade do cliente ser convertido na campanha ou nao
-# vamos tentar com probabilidades de 10 a 90%
+# vamos tentar com probabilidades de 0 a 99%
 custo_list=[]
 venda_list = []
 probabilidade_list = []
@@ -640,10 +640,11 @@ print(clientes_impactados_list)
 # Para isso devemos comparar quantos clientes estaremos atingindo e também qual o custo e lucro que teremos
 
 
-# In[273]:
+# In[303]:
 
 
-campanha.groupby('probabilidade').lucro.mean().plot(kind='bar', figsize=(30,5))
+plt.title('Lucro')
+campanha.groupby('probabilidade').lucro.mean().plot(kind='bar', figsize=(30,10))
 # É possível ver que temos o maior lucro com aprox 7% de probabilidade, impactando mais clientes.
 
 
@@ -676,6 +677,22 @@ maximo = campanha.iloc[campanha.lucro.idxmax()]
 
 
 print(('Com {} % de probabilidade teríamos {} de clientes impactados gerando um lucro de {} ').format(maximo[0]*100,clientes_impactados_list[campanha.lucro.idxmax()],maximo[3]))
+
+
+# In[305]:
+
+
+score_list[7]*100
+#Conversão de clientes do modelo na probabilidade escolhida. De todos que receberam a comunicação, quantos % aceitou.
+
+
+# In[311]:
+
+
+#Salvando o modelo
+
+import pickle
+pickle.dump(modelo_gb, open('modeloifood', 'wb'))
 
 
 # In[ ]:
