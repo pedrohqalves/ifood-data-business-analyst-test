@@ -580,7 +580,7 @@ dados2['decisao'] = pd.Series()
 dados2['aux'] = pd.Series()
 
 
-# In[226]:
+# In[263]:
 
 
 # Aqui vamos entender o ponto ótimo da campanha, menor erro e maior lucro, 
@@ -591,12 +591,12 @@ venda_list = []
 probabilidade_list = []
 score_list = []
 clientes_impactados_list = []
-for i in range(1,10,1):
-    probabilidade = i/10
+for i in range(1,100,1):
+    probabilidade = i/100
     dados2['decisao'] = dados2.proba.apply(lambda x : 1 if x > probabilidade else 0)
     for j in dados2.index:
         dados2['aux'][j] = abs(dados2.Response[j] - dados2.decisao[j])
-    score = (1 - (dados2.aux.sum()/dados2.ID.count())) *100
+    score = (1 - (dados2.aux.sum()/dados2.ID.count()))
     clientes_impactados = dados2.decisao.sum() 
     custototal = clientes_impactados*dados2.Z_CostContact.mean()
     venda = score*clientes_impactados*dados2.Z_Revenue.mean()
@@ -608,13 +608,13 @@ for i in range(1,10,1):
     print('loop' + str(i) + 'concluído')
 
 
-# In[216]:
+# In[264]:
 
 
 campanha = pd.DataFrame(columns={'probabilidade': probabilidade_list, 'venda': venda_list, 'custo': custo_list})
 
 
-# In[217]:
+# In[265]:
 
 
 campanha.probabilidade = probabilidade_list
@@ -623,7 +623,7 @@ campanha.custo = custo_list
 campanha['lucro'] = campanha.venda-campanha.custo
 
 
-# In[231]:
+# In[266]:
 
 
 #Conseguimos ver que quanto maior a probabilidade que queremos usar para dizer que um cliente vai aceitar, menos clientes serão impactados
@@ -633,34 +633,49 @@ plt.plot(clientes_impactados_list)
 print(clientes_impactados_list)
 
 
-# In[ ]:
+# In[267]:
 
 
 # O Score do modelo é otimizado por volta de 40 a 50% de probabilidade, mas isso não quer dizer necessariamente que quanto maior o score, mais lucro
 # Para isso devemos comparar quantos clientes estaremos atingindo e também qual o custo e lucro que teremos
 
 
-# In[223]:
+# In[273]:
 
 
-campanha.groupby('probabilidade').lucro.mean().plot(kind='barh')
-# É possível ver que temos o maior lucro com 10% de probabilidade, impactando mais clientes.
+campanha.groupby('probabilidade').lucro.mean().plot(kind='bar', figsize=(30,5))
+# É possível ver que temos o maior lucro com aprox 7% de probabilidade, impactando mais clientes.
 
 
-# In[232]:
+# In[269]:
 
 
-# Apesar de 10% ser uma probabilidade relativamente baixa, conseguimos explicar a maximização do lucro olhando o histograma
+# Apesar de 7% ser uma probabilidade relativamente baixa, conseguimos explicar a maximização do lucro olhando o histograma
 
 dados2.proba.hist()
 
 # A maior parte dos clientes possuem probabilidades ainda menores que 10% de aceitar a campanha, e por isso não seriam impactados.
 
 
-# In[244]:
+# In[289]:
 
 
-print(('Com {} % de probabilidade teríamos {} de clientes impactados gerando um lucro de {} ').format(probabilidade_list[0]*100,clientes_impactados_list[0],lucro_list[0]))
+# Para sabermos onde o lucro é otimizado
+campanha.iloc[campanha.lucro.idxmax()]
+
+# O Lucro é máximo impactando qualquer cliente com mais que 8% de probabilidade de aceite.
+
+
+# In[300]:
+
+
+maximo = campanha.iloc[campanha.lucro.idxmax()]
+
+
+# In[301]:
+
+
+print(('Com {} % de probabilidade teríamos {} de clientes impactados gerando um lucro de {} ').format(maximo[0]*100,clientes_impactados_list[campanha.lucro.idxmax()],maximo[3]))
 
 
 # In[ ]:
